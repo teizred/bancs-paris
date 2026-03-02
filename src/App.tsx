@@ -74,8 +74,43 @@ export default function App() {
           'circle-opacity': 0.8
         }
       })
+
+      // quand je clique sur un banc j'affiche ses infos
+      map.on('click', 'bancs-layer', async (e) => {
+        if (!e.features || !e.features[0]) return
+        const coordinates = (e.features[0].geometry as GeoJSON.Point).coordinates as [number, number]
+
+        // je crée le popup avec un message de chargement
+        const popup = new mapboxgl.Popup()
+          .setLngLat(coordinates)
+          .setHTML(`<div style="font-family: sans-serif; padding: 4px;">🪑 <strong>Banc</strong><br/><span style="color: gray;">Chargement...</span></div>`)
+          .addTo(map)
+
+        // je fetch l'adresse avec le reverse geocoding de Mapbox
+        const res = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${coordinates[0]},${coordinates[1]}.json?access_token=${import.meta.env.VITE_MAPBOX_TOKEN}&language=fr`
+        )
+        const data = await res.json()
+        const adresse = data.features?.[0]?.place_name || 'Adresse inconnue'
+
+        // je mets à jour le popup avec la vraie adresse
+        popup.setHTML(`
+          <div style="font-family: sans-serif; padding: 4px;">
+            <strong>🪧 Un banc</strong><br/>
+            <span style="font-size: 13px;">${adresse}</span>
+          </div>
+        `)
+      })
+
+      // je change le curseur quand je survole un banc
+      map.on('mouseenter', 'bancs-layer', () => {
+        map.getCanvas().style.cursor = 'pointer'
+      })
+      map.on('mouseleave', 'bancs-layer', () => {
+        map.getCanvas().style.cursor = ''
+      })
     })
-  }, []) // le tableau vide c'est pour que ça se lance qu'une seule fois
+  }, [])
 
   return (
     <div className="w-screen h-screen">
